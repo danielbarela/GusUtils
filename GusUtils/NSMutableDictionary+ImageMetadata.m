@@ -25,6 +25,18 @@
     return dateString;
 }
 
+- (NSDate *)getLocalDateFromUTCFormattedString:(NSString *) dateString {
+	static NSDateFormatter *dateFormatter;
+    if (dateFormatter == nil) {
+        dateFormatter = [[NSDateFormatter alloc] init];
+        NSTimeZone *timeZone = [NSTimeZone timeZoneWithName:@"UTC"];
+        [dateFormatter setTimeZone:timeZone];
+        [dateFormatter setDateFormat:@"yyyy:MM:dd HH:mm:ss"];
+    }
+    NSDate *date = [dateFormatter dateFromString:dateString];
+    return date;
+}
+
 - (id)initWithImageSampleBuffer:(CMSampleBufferRef) imageDataSampleBuffer {
     
     // Dictionary of metadata is here
@@ -160,8 +172,17 @@
             lat *= -1.0f;
         if ([@"W" isEqualToString:lngRef])
             lng *= -1.0f;
+		
+		float horizontalAccuracy = [[locDict objectForKey:(NSString*)kCGImagePropertyGPSDOP] floatValue];
+		float altitude = [[locDict objectForKey:(NSString*)kCGImagePropertyGPSAltitude] floatValue];
+		NSDate *timestamp = [self getLocalDateFromUTCFormattedString:[[locDict objectForKey:(NSString*)kCGImagePropertyGPSTimeStamp] stringValue]];
+		
+        CLLocation *location = [[[CLLocation alloc] initWithCoordinate:CLLocationCoordinate2DMake(lat, lng)
+															  altitude:altitude
+													horizontalAccuracy:horizontalAccuracy
+													  verticalAccuracy:0
+															 timestamp:timestamp] autorelease];
         
-        CLLocation *location = [[[CLLocation alloc] initWithLatitude:lat longitude:lng] autorelease];
         return location;
     }
     
